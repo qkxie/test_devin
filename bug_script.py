@@ -31,11 +31,43 @@ class ScoreService:
 def lookup_city(city_code):
     return CITIES_REFERENCE.get(city_code, "Unknown")
 
-def analyze_user_profiles():
+def analyze_user_profiles(csv_file_path=None):
+    import csv
+    import io
+    
     score_service_conn = ScoreService()
     processed_data = []
+    
+    if csv_file_path:
+        users_data = []
+        scores_data = {}
+        
+        if isinstance(csv_file_path, str):
+            with open(csv_file_path, 'r', encoding='utf-8') as file:
+                csv_content = file.read()
+        else:
+            csv_content = csv_file_path.decode('utf-8')
+        
+        csv_reader = csv.DictReader(io.StringIO(csv_content))
+        for row in csv_reader:
+            user_data = {
+                'user_id': int(row['user_id']),
+                'user_name': row['user_name'],
+                'age': int(row['age']),
+                'city_identifier': int(row['city_identifier'])
+            }
+            users_data.append(user_data)
+            
+            scores_str = row['scores'].strip('"')
+            scores = [int(s.strip()) for s in scores_str.split(',')]
+            scores_data[user_data['user_id']] = scores
+        
+        score_service_conn._score_records = [(uid, scores) for uid, scores in scores_data.items()]
+        users = users_data
+    else:
+        users = USERS
 
-    for user_profile in USERS:
+    for user_profile in users:
         user_id = user_profile.get("user_id")
         user_name = user_profile["user_name"]
         age = user_profile["age"]
