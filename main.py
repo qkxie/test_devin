@@ -1,14 +1,14 @@
+import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 from bug_script import analyze_user_profiles
 
 app = FastAPI(title="Data Analysis API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -20,15 +20,11 @@ async def root():
 
 @app.post("/api/analyze")
 async def analyze_file(file: UploadFile = File(...)):
-    """
-    接收CSV文件上传并返回分析结果
-    """
     try:
         if not file.filename.endswith('.csv'):
             raise HTTPException(status_code=400, detail="只支持CSV文件格式")
         
         content = await file.read()
-        
         analysis_results = analyze_user_profiles(content)
         
         total_users = len(analysis_results)
@@ -72,6 +68,3 @@ async def analyze_file(file: UploadFile = File(...)):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"文件处理错误: {str(e)}")
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
