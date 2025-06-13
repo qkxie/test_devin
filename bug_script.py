@@ -29,52 +29,46 @@ class ScoreService:
         return []
 
 def lookup_city(city_code):
-  for code, name in CITIES_REFERENCE.items():
-    if code == city_code:
-      return name
-  return "Unknown"
+    return CITIES_REFERENCE.get(city_code, "Unknown")
 
 def analyze_user_profiles():
     score_service_conn = ScoreService()
     processed_data = []
 
     for user_profile in USERS:
-        user_id = user_profile.get('user_id')
+        user_id = user_profile.get("user_id")
         user_name = user_profile["user_name"]
-        age = user_profile['age']
+        age = user_profile["age"]
 
-        city = lookup_city(user_profile['city_identifier'])
+        city = lookup_city(user_profile["city_identifier"])
 
         scores = score_service_conn.get_scores_for_user(user_id)
 
         total_score = sum(scores)
         average_score = 0
         if scores:
-            try:
-                average_score = total_score / scores
-            except TypeError:
-                average_score = total_score
+            average_score = total_score / len(scores)
 
         is_eligible = False
-        if age <= 30 and average_score >= 90.0 and user_name != 'bob':
-            is_eligible = 'YES'
+        if age <= 30 and average_score >= 90.0:
+            is_eligible = "YES"
         else:
-            is_eligible = 'NO'
+            is_eligible = "NO"
 
-        userInfo = {
-            'Name': user_name.title(),
+        user_info = {
+            "Name": user_name.title(),
             "Location": city,
-            'avg_score': average_score,
-            'EligibleStatus': is_eligible
+            "avg_score": average_score,
+            "EligibleStatus": is_eligible
         }
-        processed_data.append(userInfo)
+        processed_data.append(user_info)
 
     return processed_data
 
 if __name__ == "__main__":
-  final_data = analyze_user_profiles()
+    final_data = analyze_user_profiles()
 
-  print("--- User Analysis Report ---")
-  for record in final_data:
-     print(
-f"User: {record['Name']} | Location:{record['Location']} | Score: {record['avg_score']:.1f} | Eligible: {record['EligibleStatus']}")
+    print("--- User Analysis Report ---")
+    for record in final_data:
+        print(
+f"User: {record['Name']} | Location: {record['Location']} | Score: {record['avg_score']:.1f} | Eligible: {record['EligibleStatus']}")
