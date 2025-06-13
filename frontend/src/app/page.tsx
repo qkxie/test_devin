@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Copy } from "lucide-react";
+import { toast } from "sonner";
 
 interface AnalysisResult {
   filename: string;
@@ -55,7 +58,7 @@ export default function Home() {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await fetch('http://localhost:8000/api/analyze', {
+      const response = await fetch('https://data-analysis-api-askupnki.fly.dev/api/analyze', {
         method: 'POST',
         body: formData,
       });
@@ -71,6 +74,17 @@ export default function Home() {
       setError(err instanceof Error ? err.message : '分析过程中发生错误');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCopyResults = async () => {
+    if (!analysisResult) return;
+    
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(analysisResult, null, 2));
+      toast("已复制到剪贴板");
+    } catch (err) {
+      toast("复制失败，请重试");
     }
   };
 
@@ -120,10 +134,19 @@ export default function Home() {
 
         {analysisResult && (
           <Card className="shadow-lg">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-200">
                 分析结果
               </CardTitle>
+              <Button
+                onClick={handleCopyResults}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                复制结果
+              </Button>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -147,15 +170,60 @@ export default function Home() {
 
               <div>
                 <h3 className="text-lg font-semibold mb-3">城市统计</h3>
-                <div className="space-y-2">
-                  {Object.entries(analysisResult.location_stats).map(([location, stats]) => (
-                    <div key={location} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                      <span className="font-medium">{location}</span>
-                      <div className="text-sm text-slate-600">
-                        {stats.count}人 | 平均分: {stats.avg_score} | 合格: {stats.eligible}人
+                <div className="space-y-4">
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={Object.entries(analysisResult.location_stats).map(([location, stats]) => ({
+                          location,
+                          count: stats.count,
+                          avg_score: stats.avg_score,
+                          eligible: stats.eligible
+                        }))}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis 
+                          dataKey="location" 
+                          className="text-sm"
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis 
+                          className="text-sm"
+                          tick={{ fontSize: 12 }}
+                        />
+                        <Tooltip 
+                          contentStyle={{
+                            backgroundColor: 'white',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                          }}
+                          formatter={(value, name) => {
+                            const labels = {
+                              count: '用户数',
+                              avg_score: '平均分',
+                              eligible: '合格人数'
+                            };
+                            return [value, labels[name as keyof typeof labels] || name];
+                          }}
+                        />
+                        <Bar dataKey="count" fill="#3b82f6" name="count" />
+                        <Bar dataKey="avg_score" fill="#10b981" name="avg_score" />
+                        <Bar dataKey="eligible" fill="#8b5cf6" name="eligible" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-2">
+                    {Object.entries(analysisResult.location_stats).map(([location, stats]) => (
+                      <div key={location} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                        <span className="font-medium">{location}</span>
+                        <div className="text-sm text-slate-600">
+                          {stats.count}人 | 平均分: {stats.avg_score} | 合格: {stats.eligible}人
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
